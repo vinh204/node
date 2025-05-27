@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const database = require("./config/database");
 
+const routeAdmin = require('./routes/admin/index.route');
 const route = require('./routes/client/index.route');
 
 database.connect();
@@ -17,6 +18,7 @@ app.use(express.static('public'));
 
 
 //Routes
+routeAdmin(app)
 route(app);
 
 app.listen(port, () => {
