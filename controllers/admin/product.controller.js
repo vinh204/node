@@ -1,32 +1,12 @@
-const Product = require("../../models/product.model")
+const Product = require("../../models/product.model");
+const filterStatusHelper = require("../../helpers/filterStatus");
+const searchHelper = require("../../helpers/search");
+const paginationHelper = require("../../helpers/pagination");
+
 
 // [GET] /admin/products
 module.exports.index = async (req, res) => {
-    let filterStatus = [
-        {
-            name: "Tất cả",
-            status: "",
-            class: ""
-        },
-        {
-            name: "Hoạt động",
-            status: "active",
-            class: ""
-        },
-        {
-            name: "Dừng hoạt động",
-            status: "inactive",
-            class: ""
-        }
-    ];
-
-    if(req.query.status){
-        const index = filterStatus.findIndex(item => item.status == req.query.status);
-        filterStatus[index].class = "active";
-    }else{
-        const index = filterStatus.findIndex(item => item.status == "");
-        filterStatus[index].class = "active";
-    }
+    const filterStatus = filterStatusHelper(req.query);
 
     let find = {
         deleted: false
@@ -36,12 +16,35 @@ module.exports.index = async (req, res) => {
         find.status = req.query.status;
     }
 
-    const products = await Product.find(find);
+    const objectSearch = searchHelper(req.query);
+
+    if(objectSearch.regex) {
+        find.title = objectSearch.regex;
+    }
+
+    // Pagination
+    const countProducts = await Product.countDocuments(find);
+
+    let objectPagination = paginationHelper(
+        {
+        currentPage: 1,
+        limitItems: 4
+        },
+        req.query,
+        countProducts
+    );
+    // End Pagination
+
+    const products = await Product.find(find).limit(objectPagination.limitItems).skip(objectPagination.skip);
 
 
     res.render("admin/pages/products/index", {
         pageTitle: "Danh sách sản phẩm",
         products: products,
-        filterStatus: filterStatus     
+        filterStatus: filterStatus ,
+        keyword: objectSearch.keyword,
+        pagination: objectPagination  
     });
+
+    
 };
